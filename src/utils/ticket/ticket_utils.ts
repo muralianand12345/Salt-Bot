@@ -1,7 +1,7 @@
 import discord from "discord.js";
-import client from "../salt";
-import { TicketRepository } from "../events/database/repo/ticket_system";
-import { ITicketStatus } from "../events/database/entities/ticket_system";
+import client from "../../salt";
+import { TicketRepository } from "../../events/database/repo/ticket_system";
+import { ITicketStatus } from "../../events/database/entities/ticket_system";
 
 /**
  * Creates a new ticket for a user

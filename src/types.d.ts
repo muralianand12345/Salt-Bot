@@ -339,3 +339,20 @@ interface OpenAIFunction {
         };
     };
 }
+
+export interface ITicketCreationOptions {
+    userId: string;
+    guildId: string;
+    categoryId: string;
+    originalMessage?: string;
+    fromChatbot?: boolean;
+    additionalContext?: string;
+}
+
+export interface ITicketCreationResult {
+    success: boolean;
+    ticket?: any;
+    channel?: discord.TextChannel;
+    error?: string;
+    ticketNumber?: number;
+}

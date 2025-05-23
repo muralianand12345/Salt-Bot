@@ -1,9 +1,8 @@
 import discord from "discord.js";
 import { BotEvent } from "../../../types";
-import { createTicket } from "../../../utils/ticket_utils";
+import { createTicket } from "../../../utils/ticket";
 import { TicketRepository } from "../../../events/database/repo/ticket_system";
 import { ITicketStatus } from "../../../events/database/entities/ticket_system";
-import { createAndSendTranscript } from "../../../utils/transcript";
 
 const event: BotEvent = {
     name: discord.Events.InteractionCreate,

@@ -1,12 +1,13 @@
-import RAG from "./rag";
+import discord from "discord.js";
 import { DataSource } from "typeorm";
+import { TicketManager } from "../ticket";
+import { ChatbotConfig } from "../../events/database/entities/chatbot_config";
+import { RagRepository } from "../../events/database/repo/rag_data";
+
+import { RAG } from "./rag";
 import { LLM, Embedding } from "./llm";
 import ChatHistory from "./chat_history";
 import { createDynamicTicketTool } from "./tools";
-import { TicketRepository } from "../../events/database/repo/ticket_system";
-import { ChatbotConfig } from "../../events/database/entities/chatbot_config";
-import { RagRepository } from "../../events/database/repo/rag_data";
-import discord from "discord.js";
 import client from "../../salt";
 
 /**
@@ -16,6 +17,7 @@ import client from "../../salt";
 export class ChatbotService {
     private ragRepo: RagRepository;
     private dataSource: DataSource;
+    private ticketManager: TicketManager;
 
     private static pendingTicketCreations: Map<string, {
         categoryId: string;
@@ -29,6 +31,7 @@ export class ChatbotService {
     constructor(dataSource: DataSource) {
         this.dataSource = dataSource;
         this.ragRepo = new RagRepository(dataSource);
+        this.ticketManager = new TicketManager(dataSource);
     }
 
     /**
@@ -149,11 +152,8 @@ export class ChatbotService {
      */
     private getTicketCategories = async (guildId: string): Promise<Array<{ id: string; name: string }>> => {
         try {
-            const ticketRepo = new TicketRepository(this.dataSource);
-            const categories = await ticketRepo.getTicketCategories(guildId);
-            return categories
-                .filter(cat => cat.isEnabled)
-                .map(cat => ({ id: cat.id, name: cat.name }));
+            const categories = await this.ticketManager.getAvailableCategories(guildId);
+            return categories.map(cat => ({ id: cat.id, name: cat.name }));
         } catch (error) {
             client.logger.error(`[CHATBOT_SERVICE] Error getting ticket categories: ${error}`);
             return [];
@@ -308,7 +308,7 @@ export class ChatbotService {
     };
 
     /**
-     * Handle ticket creation confirmation
+     * Handle ticket creation confirmation using TicketManager
      * @param confirmationId - The confirmation ID
      * @param confirmed - Whether the user confirmed
      * @returns Success message or error
@@ -343,131 +343,39 @@ export class ChatbotService {
                 return { success: true, message: "Ticket creation has been cancelled." };
             }
 
-            const ticketRepo = new TicketRepository(this.dataSource);
-            const category = await ticketRepo.getTicketCategory(pendingCreation.categoryId);
-
-            if (!category) {
-                await chatHistory.addUserMessage(pendingCreation.userMessage);
-                await chatHistory.addAssistantMessage("I apologize, but the ticket category is no longer available. Please try again or contact an administrator.");
-
-                return { success: false, message: "The selected ticket category no longer exists." };
-            }
-
-            const guild = client.guilds.cache.get(pendingCreation.guildId);
-            if (!guild) {
-                await chatHistory.addUserMessage(pendingCreation.userMessage);
-                await chatHistory.addAssistantMessage("I apologize, but there was an issue accessing the server. Please try again or contact an administrator.");
-
-                return { success: false, message: "Server not found." };
-            }
-
-            const tempChannelName = `ticket-new`;
-            const newTicketChannel = await guild.channels.create({
-                name: tempChannelName,
-                type: discord.ChannelType.GuildText,
-                parent: category.categoryId,
-                permissionOverwrites: [
-                    {
-                        id: guild.roles.everyone,
-                        deny: [discord.PermissionFlagsBits.ViewChannel]
-                    },
-                    {
-                        id: client.user!.id,
-                        allow: [
-                            discord.PermissionFlagsBits.ViewChannel,
-                            discord.PermissionFlagsBits.SendMessages,
-                            discord.PermissionFlagsBits.ManageChannels,
-                            discord.PermissionFlagsBits.ReadMessageHistory
-                        ]
-                    },
-                    {
-                        id: pendingCreation.userId,
-                        allow: [
-                            discord.PermissionFlagsBits.ViewChannel,
-                            discord.PermissionFlagsBits.SendMessages,
-                            discord.PermissionFlagsBits.ReadMessageHistory
-                        ]
-                    }
-                ]
+            const ticketResult = await this.ticketManager.createTicket({
+                userId: pendingCreation.userId,
+                guildId: pendingCreation.guildId,
+                categoryId: pendingCreation.categoryId,
+                originalMessage: pendingCreation.userMessage,
+                fromChatbot: true,
+                additionalContext: "Please provide any additional details, and a staff member will assist you shortly."
             });
 
-            const ticket = await ticketRepo.createTicket(
-                pendingCreation.guildId,
-                pendingCreation.userId,
-                newTicketChannel.id,
-                pendingCreation.categoryId
-            );
-
-            const channelName = `ticket-${ticket.ticketNumber.toString().padStart(4, '0')}`;
-            await newTicketChannel.setName(channelName);
-
-            if (category.supportRoleId) {
-                try {
-                    await newTicketChannel.permissionOverwrites.create(
-                        category.supportRoleId,
-                        {
-                            ViewChannel: true,
-                            SendMessages: true,
-                            ReadMessageHistory: true
-                        }
-                    );
-                } catch (permissionError) {
-                    client.logger.warn(`[CHATBOT_SERVICE] Could not set permissions for support role: ${permissionError}`);
-                }
-            }
-
-            const ticketMessage = category.ticketMessage;
-            const welcomeMessage = ticketMessage?.welcomeMessage ||
-                `Welcome to your ticket in the **${category.name}** category!\n\nOriginal question: *${pendingCreation.userMessage}*\n\nPlease provide any additional details, and a staff member will assist you shortly.`;
-
-            const creationTimestamp = Math.floor(Date.now() / 1000);
-
-            const welcomeEmbed = new discord.EmbedBuilder()
-                .setTitle(`Ticket #${ticket.ticketNumber}`)
-                .setDescription(welcomeMessage)
-                .addFields(
-                    { name: "Ticket ID", value: `#${ticket.ticketNumber}`, inline: true },
-                    { name: "Category", value: `${category.emoji || "🎫"} ${category.name}`, inline: true },
-                    { name: "Status", value: `🟢 Open`, inline: true },
-                    { name: "Created By", value: `<@${pendingCreation.userId}>`, inline: true },
-                    { name: "Created At", value: `<t:${creationTimestamp}:F>`, inline: true }
-                )
-                .setColor("Green")
-                .setFooter({ text: `Use /ticket close to close this ticket | ID: ${ticket.id}` })
-                .setTimestamp();
-
-            const actionRow = new discord.ActionRowBuilder<discord.ButtonBuilder>()
-                .addComponents(
-                    new discord.ButtonBuilder()
-                        .setCustomId("ticket_claim")
-                        .setLabel("Claim Ticket")
-                        .setStyle(discord.ButtonStyle.Primary)
-                        .setEmoji("👋"),
-                    new discord.ButtonBuilder()
-                        .setCustomId("ticket_close")
-                        .setLabel("Close Ticket")
-                        .setStyle(discord.ButtonStyle.Danger)
-                        .setEmoji("🔒")
+            if (ticketResult.success && ticketResult.ticket && ticketResult.channel) {
+                await chatHistory.addUserMessage(pendingCreation.userMessage);
+                await chatHistory.addAssistantMessage(
+                    `I've created ticket #${ticketResult.ticketNumber} for you. You can find it here: ${ticketResult.channel}. A staff member will assist you shortly!`
                 );
 
-            await newTicketChannel.send({
-                content: ticketMessage?.includeSupportTeam && category.supportRoleId ?
-                    `<@${pendingCreation.userId}> | <@&${category.supportRoleId}>` :
-                    `<@${pendingCreation.userId}>`,
-                embeds: [welcomeEmbed],
-                components: [actionRow]
-            });
+                client.logger.info(`[CHATBOT_SERVICE] Created ticket #${ticketResult.ticketNumber} via AI assistant for user ${pendingCreation.userId}`);
 
-            await chatHistory.addUserMessage(pendingCreation.userMessage);
-            await chatHistory.addAssistantMessage(`I've created ticket #${ticket.ticketNumber} for you in the ${category.name} category. You can find it here: ${newTicketChannel}. A staff member will assist you shortly!`);
+                return {
+                    success: true,
+                    message: `Ticket created successfully! Please check ${ticketResult.channel} for further assistance.`,
+                    ticketChannel: ticketResult.channel.toString()
+                };
+            } else {
+                await chatHistory.addUserMessage(pendingCreation.userMessage);
+                await chatHistory.addAssistantMessage(
+                    `I apologize, but there was an issue creating your ticket: ${ticketResult.error || "Unknown error"}. Please try again or contact an administrator.`
+                );
 
-            client.logger.info(`[CHATBOT_SERVICE] Created ticket #${ticket.ticketNumber} via AI assistant for user ${pendingCreation.userId}`);
-
-            return {
-                success: true,
-                message: `Ticket created successfully! Please check ${newTicketChannel} for further assistance.`,
-                ticketChannel: newTicketChannel.toString()
-            };
+                return {
+                    success: false,
+                    message: ticketResult.error || "An error occurred while creating the ticket."
+                };
+            }
 
         } catch (error) {
             client.logger.error(`[CHATBOT_SERVICE] Error handling ticket confirmation: ${error}`);
