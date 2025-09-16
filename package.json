@@ -1,6 +1,6 @@
 {
     "name": "salt-bot",
-    "version": "1.3.2",
+    "version": "1.3.3",
     "description": "A discord ticket bot",
     "main": "./build/index.js",
     "type": "commonjs",
