@@ -140,7 +140,6 @@ jobs:
 
             # Apply Kubernetes manifests in the correct order
             sudo kubectl apply -f /home/${{ secrets.K3S_SERVER_USERNAME }}/k3s/salt-bot/namespace.yaml
-            sudo kubectl apply -f /home/${{ secrets.K3S_SERVER_USERNAME }}/k3s/salt-bot/network-policy.yaml
             sudo kubectl apply -f /home/${{ secrets.K3S_SERVER_USERNAME }}/k3s/salt-bot/salt-bot-pvc.yaml
             sudo kubectl apply -f /home/${{ secrets.K3S_SERVER_USERNAME }}/k3s/salt-bot/psql-pvc.yaml
             sudo kubectl apply -f /home/${{ secrets.K3S_SERVER_USERNAME }}/k3s/salt-bot/configmap.yaml
