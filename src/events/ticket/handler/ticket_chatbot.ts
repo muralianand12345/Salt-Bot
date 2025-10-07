@@ -38,7 +38,7 @@ const event: BotEvent = {
 				if (result.success) {
 					const successEmbed = new discord.EmbedBuilder().setTitle('✅ Ticket Created Successfully').setDescription(result.message).setColor('Green').setTimestamp();
 
-					await interaction.editReply({
+					await interaction.update({
 						embeds: [successEmbed],
 						components: [],
 					});
@@ -52,7 +52,7 @@ const event: BotEvent = {
 				} else {
 					const errorEmbed = new discord.EmbedBuilder().setTitle('❌ Ticket Creation Failed').setDescription(result.message).setColor('Red').setTimestamp();
 
-					await interaction.editReply({
+					await interaction.update({
 						embeds: [errorEmbed],
 						components: [],
 					});
@@ -60,7 +60,7 @@ const event: BotEvent = {
 			} else {
 				const cancelEmbed = new discord.EmbedBuilder().setTitle('❌ Ticket Creation Cancelled').setDescription('The ticket creation has been cancelled. Feel free to ask me anything else!').setColor('Orange').setTimestamp();
 
-				await interaction.editReply({
+				await interaction.update({
 					embeds: [cancelEmbed],
 					components: [],
 				});

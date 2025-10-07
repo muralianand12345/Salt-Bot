@@ -2,13 +2,13 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: salt-bot-allow-internal
-  namespace: salt-bot
+  namespace: murali
 spec:
   podSelector: {}
   ingress:
     - from:
         - namespaceSelector:
             matchLabels:
-              name: salt-bot
+              name: murali
   policyTypes:
     - Ingress

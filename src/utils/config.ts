@@ -52,7 +52,7 @@ export class ConfigManager {
 		try {
 			this.config = EnvSchema.parse({
 				TOKEN: process.env.TOKEN,
-				POSTGRES_URI: process.env.POSTGRES_URI,
+				POSTGRES_URI: `postgresql://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@${process.env.POSTGRES_HOST}:${process.env.POSTGRES_PORT}/${process.env.POSTGRES_DB}`,
 				DEBUG_MODE: process.env.DEBUG_MODE || false,
 				FEEDBACK_WEBHOOK: process.env.FEEDBACK_WEBHOOK,
 				MASTER_ENCRYPTION_KEY: process.env.MASTER_ENCRYPTION_KEY,
