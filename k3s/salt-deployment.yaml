@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: salt-bot
-  namespace: salt-bot
+  namespace: murali
   labels:
     app: salt-bot
 spec:

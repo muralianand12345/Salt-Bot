@@ -2,12 +2,13 @@ apiVersion: v1
 kind: Service
 metadata:
   name: postgres
-  namespace: salt-bot
+  namespace: murali
 spec:
   selector:
     app: salt-postgres
+  type: NodePort
   ports:
-    - port: 5434 # Service port that other pods will connect to
-      targetPort: 5434 # Container port in the postgres pod
-      name: postgres
-  clusterIP: None
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      nodePort: 30432

@@ -2,9 +2,8 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: salt-bot-logs-pvc
-  namespace: salt-bot
+  namespace: murali
 spec:
-  storageClassName: manual
   accessModes:
     - ReadWriteOnce
   resources:

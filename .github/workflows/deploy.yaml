@@ -24,12 +24,13 @@ jobs:
           echo "DEBUG_MODE=false" >> .env
           echo "TOKEN=${{ secrets.TOKEN }}" >> .env
           echo "FEEDBACK_WEBHOOK=${{ secrets.FEEDBACK_WEBHOOK }}" >> .env
-          echo "MASTER_ENCRYPTION_KEY"="${{ secrets.MASTER_ENCRYPTION_KEY }}" >> .env
+          echo "MASTER_ENCRYPTION_KEY=${{ secrets.MASTER_ENCRYPTION_KEY }}" >> .env
           echo "# Database configuration" >> .env
           echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
           echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
           echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env
-          echo "POSTGRES_URI=${{ secrets.POSTGRES_URI }}" >> .env
+          echo "POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}" >> .env
+          echo "POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}" >> .env
           echo "# Default Chatbot API Configuration (Bot Owner Settings)" >> .env
           echo "DEFAULT_CHATBOT_API_KEY=${{ secrets.DEFAULT_CHATBOT_API_KEY }}" >> .env
           echo "DEFAULT_CHATBOT_MODEL=${{ secrets.DEFAULT_CHATBOT_MODEL }}" >> .env
@@ -65,7 +66,8 @@ jobs:
           sed -i "s|POSTGRES_USER: .*|POSTGRES_USER: \"${{ secrets.POSTGRES_USER }}\"|g" k3s/secret.yaml
           sed -i "s|POSTGRES_PASSWORD: .*|POSTGRES_PASSWORD: \"${{ secrets.POSTGRES_PASSWORD }}\"|g" k3s/secret.yaml
           sed -i "s|POSTGRES_DB: .*|POSTGRES_DB: \"${{ secrets.POSTGRES_DB }}\"|g" k3s/secret.yaml
-          sed -i "s|POSTGRES_URI: .*|POSTGRES_URI: \"${{ secrets.POSTGRES_URI }}\"|g" k3s/secret.yaml
+          sed -i "s|POSTGRES_HOST: .*|POSTGRES_HOST: \"${{ secrets.POSTGRES_HOST }}\"|g" k3s/secret.yaml
+          sed -i "s|POSTGRES_PORT: .*|POSTGRES_PORT: \"${{ secrets.POSTGRES_PORT }}\"|g" k3s/secret.yaml
           sed -i "s|DEFAULT_CHATBOT_API_KEY: .*|DEFAULT_CHATBOT_API_KEY: \"${{ secrets.DEFAULT_CHATBOT_API_KEY }}\"|g" k3s/secret.yaml
           sed -i "s|DEFAULT_CHATBOT_MODEL: .*|DEFAULT_CHATBOT_MODEL: \"${{ secrets.DEFAULT_CHATBOT_MODEL }}\"|g" k3s/secret.yaml
           sed -i "s|DEFAULT_CHATBOT_BASE_URL: .*|DEFAULT_CHATBOT_BASE_URL: \"${{ secrets.DEFAULT_CHATBOT_BASE_URL }}\"|g" k3s/secret.yaml
@@ -82,7 +84,7 @@ jobs:
           kind: ConfigMap
           metadata:
             name: salt-bot-config-files
-            namespace: salt-bot
+            namespace: murali
           data:
             config.yml: |
           $CONFIG_CONTENT
@@ -140,8 +142,6 @@ jobs:
             sudo kubectl apply -f /home/${{ secrets.K3S_SERVER_USERNAME }}/k3s/salt-bot/namespace.yaml
             sudo kubectl apply -f /home/${{ secrets.K3S_SERVER_USERNAME }}/k3s/salt-bot/network-policy.yaml
             sudo kubectl apply -f /home/${{ secrets.K3S_SERVER_USERNAME }}/k3s/salt-bot/salt-bot-pvc.yaml
-            sudo kubectl apply -f /home/${{ secrets.K3S_SERVER_USERNAME }}/k3s/salt-bot/salt-bot-pv.yaml
-            sudo kubectl apply -f /home/${{ secrets.K3S_SERVER_USERNAME }}/k3s/salt-bot/psql-pv.yaml
             sudo kubectl apply -f /home/${{ secrets.K3S_SERVER_USERNAME }}/k3s/salt-bot/psql-pvc.yaml
             sudo kubectl apply -f /home/${{ secrets.K3S_SERVER_USERNAME }}/k3s/salt-bot/configmap.yaml
             sudo kubectl apply -f /home/${{ secrets.K3S_SERVER_USERNAME }}/k3s/salt-bot/configmap-files.yaml

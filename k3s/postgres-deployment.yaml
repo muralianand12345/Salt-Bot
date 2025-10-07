@@ -2,9 +2,9 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: salt-postgres
-  namespace: salt-bot
+  namespace: murali
 spec:
-  serviceName: "salt-postgres"
+  serviceName: 'salt-postgres'
   replicas: 1
   selector:
     matchLabels:
@@ -18,12 +18,12 @@ spec:
         - name: postgres
           image: postgres:17-alpine
           ports:
-            - containerPort: 5434
+            - containerPort: 5432
           env:
             - name: POSTGRES_PORT
-              value: "5434"
+              value: '5432'
             - name: PGPORT
-              value: "5434"
+              value: '5432'
           envFrom:
             - secretRef:
                 name: salt-bot-secrets

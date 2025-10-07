@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: salt-bot-config-files
-  namespace: salt-bot
+  namespace: murali
 data:
   config.yml: |
     $(sed 's/^/    /' config/config.yml)
