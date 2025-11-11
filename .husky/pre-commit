@@ -1,8 +1,0 @@
-# #!/bin/sh
-if git diff --cached --name-only | grep -q "VERSION"; then
-    echo "📝 VERSION file changed, updating version across project files..."
-    node scripts/updateVersion.js
-    git add package.json README.md
-fi
-
-exit 0
